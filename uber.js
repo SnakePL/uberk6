@@ -45,7 +45,6 @@ export default function () {
         }
     });
 
-
     // sprawdzanie czy został usunięty
     //http.post(staging + sessions, bodyCreateUser, params);
 };
