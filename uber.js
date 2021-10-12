@@ -1,50 +1,52 @@
 import http from 'k6/http';
 import { check, group, sleep } from 'k6';
 
+let randomInt = Math.floor(Math.random() * 1000000);
+
+const staging = `https://mobile-staging.uberchord.com`;
+const prod = `https://mobile.uberchord.com`;
+const users = `/v1/users`;
+const sessions = `/v1/sessions`;
+
+// body
+const bodyCreateUser = {
+    "email": `MateuszTest${randomInt}@yopmail.com`,
+    "password": "qwerty1234",
+    "fullName": "Mateusz QA"
+};
+// headers for user creation and to log in
+const params = {
+    headers: {
+        'Session-Token': ''
+    }
+}
+
+// Test setup
+export let options = {
+    stages: [
+        { duration: '10s', target: 50 },
+        { duration: '30s', target: 50 },
+        { duration: '10s', target: 0 },
+    ]
+};
+
+// Test scenario
 export default function () {
 
-    let randomInt = Math.floor(Math.random() * 1000000);
+    //user creation
+    let res = http.post(prod + users, bodyCreateUser, params);
 
-    // staging i prod
-    const staging = `https://mobile-staging.uberchord.com`;
-    const prod = `https://mobile.uberchord.com`;
-
-    // endpoint do tworzenia/usuwania i logowania
-    const users = `/v1/users`;
-    const sessions = `/v1/sessions`;
-
-    //body
-    const bodyCreateUser = {
-        "email": `MateuszTest${randomInt}@yopmail.com`,
-        "password": "qwerty1234",
-        "fullName": "Mateusz QA"
-    };
-    // headers
-    const params = {
-        headers: {
-            'Session-Token': ''
-        }
-    }
-
-    // tworzenie usera
-    let res = http.post(staging + users, bodyCreateUser, params);
-
-    // wyciągnięcie tokena z odpowiedzi
-    const test = JSON.parse(res.body)
-    //console.log('sessionToken= ',test.sessionToken);
+    //retrieving a token from the response.
+    const test = JSON.parse(res.body);
     const sessionToken = test.sessionToken;
 
-    // odczyt danych usera
-    let res2 = http.post(staging + sessions, bodyCreateUser, params);
-    //console.log(res2.body)
+    //logging in to the created user.
+    let res2 = http.post(prod + sessions, bodyCreateUser, params);
     
-    // usuwanie usera 
-    http.del(staging + users, bodyCreateUser, {
+    //deleting the created user.
+    http.del(prod + users, bodyCreateUser, {
         headers: {
             'Session-Token': sessionToken
         }
     });
-
-    // sprawdzanie czy został usunięty
-    //http.post(staging + sessions, bodyCreateUser, params);
 };
